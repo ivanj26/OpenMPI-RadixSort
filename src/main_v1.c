@@ -2,9 +2,9 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <assert.h>
+#include "util.h"
 
 #define DIGIT 10
-#define FILENAME "./test/output.txt"
 
 int pow_ten[10] = {
     1,		10,		100,
@@ -13,9 +13,6 @@ int pow_ten[10] = {
 	1000000000,
 };
 
-void generate_array(int *arr, int n);
-void output_to_file(int *arr, int n);
-void print_array(int *arr, int n);
 void radix_sort(int *arr, int n, int rank, int num_proc, int *global_arr);
 void count_sort(int *arr, int n, int exp);
 int get_max_value(int *arr, int n);
@@ -27,7 +24,6 @@ int main(int argc,char *argv[]) {
     int num_proc, rank, n;
     int *arr;
 
-    //Check if argument is available or not
     assert(argc > 1);
 
     n = atoi(argv[1]);
@@ -41,11 +37,7 @@ int main(int argc,char *argv[]) {
         arr = (int*) malloc(sizeof(int) * n);
         assert(arr != NULL);
 
-        //Generate pseudo random elements for array arr */
-        generate_array(arr, n);
-
-        // printf("Before sorting: \n");
-        // print_array(arr, n);
+        rng(arr, n, 13516059);
     }
 
     int local_size = n / num_proc;
@@ -62,12 +54,9 @@ int main(int argc,char *argv[]) {
     stop = MPI_Wtime();
 
     if (rank == 0){
-        printf("After sorting: \n");
-        print_array(arr, n);
-
         printf("Elapsed time for %d processor(s) = %lf ms\n", num_proc, (stop-start)/0.001);
 
-        output_to_file(arr, n);
+        output(arr, n);
         free(arr);
     }
     free(local_arr);
@@ -146,35 +135,6 @@ int get_max_digit(int m){
     }
 
     return max_digit;
-}
-
-void output_to_file(int *arr, int n){
-    FILE *f;
-	f = fopen(FILENAME, "w+");
-
-	int i;
-
-	for (i = 0; i < n-1; i++){
-		fprintf(f, "%d\n", arr[i]);
-	}
-	fprintf(f, "%d", arr[n-1]);
-
-	fclose(f);
-}
-
-void print_array(int *arr, int n){
-    for (int i = 0; i < n; i++) {
-        printf("%d\n", arr[i]);
-    }
-    printf("\n");
-}
-
-void generate_array(int *arr, int n){
-    int seed = 13516059;
-    srand(seed);
-    for (int i = 0; i < n; i++) {
-        arr[i] = rand();
-    }
 }
 
 int get_max_value(int *arr, int n){
