@@ -40,10 +40,11 @@ int main(int argc,char *argv[]) {
     MPI_Scatter(arr, sub_arr_size, MPI_INT, sub_arr, sub_arr_size, MPI_INT, 0, MPI_COMM_WORLD);
 
     long sub_sum = compute_sum(sub_arr, sub_arr_size, rank);
+	printf("> %ld\n", sub_sum);
     long *sub_sums = NULL;
 
     if (rank == 0){
-        sub_sums = (long*) malloc(sizeof(long) * sub_arr_size);
+        sub_sums = (long*) malloc(sizeof(long) * num_proc);
         assert(sub_sums != NULL);
     }
 
