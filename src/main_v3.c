@@ -77,46 +77,25 @@ int main(int argc, char *argv[]) {
 		countDigit(chunkArr, countLocal, chunkSize, base);
 		
 		MPI_Barrier(MPI_COMM_WORLD);
-		int countGlobal[2 * num_proc];
-		int offsetGlobal[2 * num_proc];
-		memset(countGlobal, 0, 2 * num_proc * sizeof(int));
-		memset(offsetGlobal, 0, 2 * num_proc * sizeof(int));
-
-		MPI_Gather(countLocal, 2,  MPI_INT, countGlobal, 2, MPI_INT, 0, MPI_COMM_WORLD);
+		int countGlobal[2];
+		int offsetGlobal[2];
+		memset(countGlobal, 0, 2 * sizeof(int));
+		memset(offsetGlobal, 0, 2 * sizeof(int));
+		MPI_Reduce(countLocal, countGlobal, 2, MPI_INT, MPI_SUM, 0, MPI_COMM_WORLD);
 		if (rank == 0) {
-			calculateOffset(countGlobal, num_proc, offsetGlobal, 2 * num_proc);
+			int offsetGlobal[2] = {0};
+			calculateOffsetOld(countGlobal, offsetGlobal, 2);
+			radixSort(arr, countGlobal, n, offsetGlobal, 1 << i);
 		}
 		
 		MPI_Barrier(MPI_COMM_WORLD);
-		MPI_Bcast(offsetGlobal, 2 * num_proc, MPI_INT, 0, MPI_COMM_WORLD);	
-
-		if (rank == 0) {
-			int* output = malloc(n * sizeof(int));
-			memset(output, 0, n * sizeof(int));
-			for (int i = 0; i < chunkSize; i++) {
-				int bit = (chunkArr[i] & base) ? 1 : 0;
-				MPI_Send(&chunkArr[i], 1, MPI_INT, 0, offsetGlobal[rank + (bit * num_proc)]++, MPI_COMM_WORLD);
-			}
-			for (int i = 0; i < n; i++) {
-				MPI_Recv(&output[i], 1, MPI_INT, MPI_ANY_SOURCE, i, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
-			}
-			memcpy(arr, output, n * sizeof(int));
-			free(output);
-		} else {
-			for (int i = 0; i < chunkSize; i++) {
-				int bit = (chunkArr[i] & base) ? 1 : 0;
-				MPI_Send(&chunkArr[i], 1, MPI_INT, 0, offsetGlobal[rank + (bit * num_proc)]++, MPI_COMM_WORLD);
-			}
-		}
-
-		MPI_Barrier(MPI_COMM_WORLD);
 	}
 	stop = MPI_Wtime();
-
+	
 	free(chunkArr);
 	if (rank == 0) {
-		free(arr);
 		output(arr, n);
+		free(arr);
 		printf("Elapsed time for %d processor(s) = %lf ms\n", num_proc, (stop-start)/0.001);
 	}
 

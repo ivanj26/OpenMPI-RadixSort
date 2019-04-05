@@ -1,6 +1,7 @@
+#include <mpi.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include "radix_serial.h"
+#include "util.h"
 
 /**
  * Reference: https://www.geeksforgeeks.org/radix-sort/
@@ -45,4 +46,34 @@ void radixSort(int* arr, int n) {
     for (int exp = 1; max/exp > 0; exp *= 10) {
     	countSort(arr, n, exp); 
     }
+}
+
+int main(int argc,char *argv[]) {
+	int num_proc, rank;
+	double start, stop;
+	int n = atoi(argv[1]);
+
+    MPI_Init(&argc, &argv);
+    MPI_Comm_size(MPI_COMM_WORLD, &num_proc);
+    MPI_Comm_rank(MPI_COMM_WORLD, &rank);
+	
+	int *arr = malloc(sizeof(int) * n);
+	if (rank == 0) {
+		rng(arr, n, 13516059);
+	}
+
+	start = MPI_Wtime();
+	if (rank == 0) {
+		radixSort(arr, n);
+		output(arr, n);
+	}
+	MPI_Barrier(MPI_COMM_WORLD);
+	stop = MPI_Wtime();
+
+	free(arr);
+	if (rank == 0) {
+		printf("Elapsed time for %d processor(s) = %lf ms\n", 1, (stop-start)/0.001);
+	}
+	
+	MPI_Finalize();	
 }
