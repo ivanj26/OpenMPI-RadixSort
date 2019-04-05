@@ -44,8 +44,8 @@ int main(int argc,char *argv[]) {
         //Generate pseudo random elements for array arr */
         generate_array(arr, n);
 
-        printf("Before sorting: \n");
-        print_array(arr, n);
+        // printf("Before sorting: \n");
+        // print_array(arr, n);
     }
 
     int local_size = n / num_proc;

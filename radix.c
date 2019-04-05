@@ -91,7 +91,6 @@ int main(int argc, char *argv[]) {
 	int chunkSize = n / num_proc;
 	int* chunkArr = (int*) malloc(sizeof(int) * chunkSize);
 	
-	
 	// printf("MyRank %d\n", rank);
 	// printf("Before:\n");
 	// print_array(chunkArr, chunkSize);
@@ -104,35 +103,48 @@ int main(int argc, char *argv[]) {
 		// print_array(countLocal, 2);
 		
 		MPI_Barrier(MPI_COMM_WORLD);
-		// int countGlobal[2 * num_proc];
-		// int offsetGlobal[2 * num_proc];
-		// memset(countGlobal, 0, 2 * num_proc * sizeof(int));
-		// memset(offsetGlobal, 0, 2 * num_proc * sizeof(int));
-		int countGlobal[2];
-		int offsetGlobal[2];
-		memset(countGlobal, 0, 2 * sizeof(int));
-		memset(offsetGlobal, 0, 2 * sizeof(int));
-		MPI_Reduce(countLocal, countGlobal, 2, MPI_INT, MPI_SUM, 0, MPI_COMM_WORLD);
-		// MPI_Gather(countLocal, 2,  MPI_INT, countGlobal, 2, MPI_INT, 0, MPI_COMM_WORLD);
+		int countGlobal[2 * num_proc];
+		int offsetGlobal[2 * num_proc];
+		memset(countGlobal, 0, 2 * num_proc * sizeof(int));
+		memset(offsetGlobal, 0, 2 * num_proc * sizeof(int));
+		// int countGlobal[2];
+		// int offsetGlobal[2];
+		// memset(countGlobal, 0, 2 * sizeof(int));
+		// memset(offsetGlobal, 0, 2 * sizeof(int));
+		// MPI_Reduce(countLocal, countGlobal, 2, MPI_INT, MPI_SUM, 0, MPI_COMM_WORLD);
+		MPI_Gather(countLocal, 2,  MPI_INT, countGlobal, 2, MPI_INT, 0, MPI_COMM_WORLD);
 		if (rank == 0) {
 			printf("countGlobal: \n");
-			print_array(countGlobal, 2);
-			int offsetGlobal[2] = {0};
-			// calculateOffset(countGlobal, num_proc, offsetGlobal, 2 * num_proc);
-			calculateOffsetOld(countGlobal, offsetGlobal, 2);
+			print_array(countGlobal, 2 * num_proc);
+			calculateOffset(countGlobal, num_proc, offsetGlobal, 2 * num_proc);
 			printf("offsetGlobal: \n");
-			print_array(offsetGlobal, 2);
-			radixSort(arr, countGlobal, n, offsetGlobal, 1 << i);
+			print_array(offsetGlobal, 2 * num_proc);
+			// radixSort(arr, countGlobal, n, offsetGlobal, 1 << i);
 		}
 		
 		MPI_Barrier(MPI_COMM_WORLD);
-		// MPI_Bcast(offsetGlobal, 2 * num_proc, MPI_INT, 0, MPI_COMM_WORLD);	
-		
-		// int* output = malloc(n * sizeof(int));
-		// memset(output, 0, n * sizeof(int));
-		// // printf("init:\n");
-		// // print_array(output, n);
-		// MPI_Barrier(MPI_COMM_WORLD);
+		MPI_Bcast(offsetGlobal, 2 * num_proc, MPI_INT, 0, MPI_COMM_WORLD);	
+
+		if (rank == 0) {
+			int* output = malloc(n * sizeof(int));
+			memset(output, 0, n * sizeof(int));
+			for (int i = 0; i < chunkSize; i++) {
+				int bit = (chunkArr[i] & base) ? 1 : 0;
+				MPI_Send(&chunkArr[i], 1, MPI_INT, 0, offsetGlobal[rank + (bit * num_proc)]++, MPI_COMM_WORLD);
+			}
+			for (int i = 0; i < n; i++) {
+				MPI_Recv(&output[i], 1, MPI_INT, MPI_ANY_SOURCE, i, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+			}
+			memcpy(arr, output, n * sizeof(int));
+			free(output);
+		} else {
+			for (int i = 0; i < chunkSize; i++) {
+				int bit = (chunkArr[i] & base) ? 1 : 0;
+				MPI_Send(&chunkArr[i], 1, MPI_INT, 0, offsetGlobal[rank + (bit * num_proc)]++, MPI_COMM_WORLD);
+			}
+		}
+
+		MPI_Barrier(MPI_COMM_WORLD);
 		// for (int i = 0; i < chunkSize; i++) {
 		// 	int bit = (chunkArr[i] & base) ? 1 : 0;
 		// 	output[ offsetGlobal[rank + (bit * num_proc)]++ ] = chunkArr[i];
