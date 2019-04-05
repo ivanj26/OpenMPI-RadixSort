@@ -4,7 +4,7 @@
 #include <assert.h>
 
 #define DIGIT 10
-#define FILENAME "./output/output.txt"
+#define FILENAME "./test/output.txt"
 
 int pow_ten[10] = {
     1,		10,		100,
